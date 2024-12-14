@@ -44,6 +44,28 @@ void threadGuard()
     ThreadGuard guard(thread);
 }
 
+void inc(int& a)
+{
+    a++;
+}
+
+class String
+{
+public:
+    String(const std::string& s) : s_(s) {}
+    void print()
+    {
+        std::cout << s_ << std::endl;
+    }
+private:
+    std::string s_;
+};
+
+void print(std::unique_ptr<String> s)
+{
+    s->print();
+}
+
 int main() {
     std::vector<std::thread> threads;
 
@@ -56,4 +78,21 @@ int main() {
     for (std::thread& thread : threads) {
         thread.join();
     }
+
+    threadGuard();
+
+    int a = 0;
+
+    std::thread threadI(inc, std::ref(a));
+    threadI.join();
+    std::cout << a << std::endl;
+
+    String s("String");
+    std::thread threadS(&String::print, &s);
+    threadS.join();
+
+    std::unique_ptr<String> p(new String("Unique"));
+    p->print();
+    std::thread threadU(print, std::move(p));
+    threadU.join();
 }
