@@ -4,9 +4,11 @@
 #include <iostream>
 #include <climits>
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <shared_mutex>
 #include <stack>
 #include <string>
 #include <vector>
@@ -288,6 +290,49 @@ private:
     mutable std::mutex mutex_;
 };
 
+class DNSEntry {};
+
+class DNSCache
+{
+    std::map<std::string, DNSEntry> entries_;
+    mutable std::shared_mutex mutex_;
+public:
+    DNSEntry findEntry(std::string const& domain) const 
+    {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
+        std::map<std::string, DNSEntry>::const_iterator const it = entries_.find(domain);
+        return (it == entries_.end()) ? DNSEntry() : it->second;
+    }
+
+    void updateOrAddEntry(std::string const& domain, DNSEntry const& entry)
+    {
+        std::lock_guard<std::shared_mutex> guard(mutex_);
+        entries_[domain] = entry;
+    }
+};
+
+class Recursive 
+{
+    std::recursive_mutex mutex_;
+    std::string data_;
+public:
+    void fA()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        data_ = "FA";
+        std::cout << "fA(), shared variable: " << data_ << '\n';
+    }
+
+    void fB()
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        data_ = "FB";
+        std::cout << "fB(), shared variable: " << data_ << '\n';
+        fA();
+
+    }
+};
+
 int main()
 {
     std::vector<std::thread> threads;
@@ -305,4 +350,10 @@ int main()
 
     deadLock();
     lock();
+
+    Recursive r;
+    std::thread tA(&Recursive::fA, &r);
+    std::thread tB(&Recursive::fB, &r);
+    tA.join();
+    tB.join();
 }
