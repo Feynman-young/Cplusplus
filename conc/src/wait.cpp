@@ -1,5 +1,6 @@
 #include <chrono>
 #include <condition_variable>
+#include <future>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -67,7 +68,7 @@ void pushToQueue()
 
 void popFromQueue()
 {
-    while (true)
+    for (int i = 0; i < 10; ++i)
     {
         std::unique_lock<std::mutex> lock(globalMutexB);
         globalCondition.wait(lock, [] () { return !globalDataQueue.empty(); });
@@ -100,7 +101,7 @@ public:
     void waitPop(T& value)
     {
         std::unique_ptr<std::mutex> lock(mutex_);
-        condition_.wait(lock, []() { return !queue_.empty(); })
+        condition_.wait(lock, [this]() { return !queue_.empty(); });
         value = queue_.front();
         queue_.pop();
     }
@@ -108,7 +109,7 @@ public:
     std::shared_ptr<T> waitPop()
     {
         std::unique_ptr<std::mutex> lock(mutex_);
-        condition_.wait(lock, []() { return !queue_.empty(); })
+        condition_.wait(lock, [this]() { return !queue_.empty(); });
         std::shared_ptr<T> p(std::make_shared<T>(queue_.front()));
         queue_.pop();
         return p;
@@ -150,6 +151,48 @@ private:
     std::queue<T> queue_;
 };
 
+int backgroundWaitTask()
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return 10;
+}
+
+struct X
+{
+    void f(const std::string &s)
+    {
+        std::cout << "F: " << s << std::endl;
+    }
+
+    void g(const std::string &s)
+    {
+        std::cout << "G: " << s << std::endl;
+    }
+};
+
+struct Y
+{
+    void operator()(double a)
+    {
+        std::cout << "Half: " << a / 2 << std::endl;
+    }
+};
+
+std::string char2string(std::vector<char>* vec, int size)
+{
+    if (vec == nullptr || size <= 0)
+    {
+        return std::string();
+    }
+
+    if (vec->size() < size)
+    {
+        return std::string(vec->data(), vec->size());
+    }
+
+    return std::string(vec->data(), size);
+}
+
 int main()
 {
     std::thread threadA(popFromQueue);
@@ -157,4 +200,32 @@ int main()
 
     threadA.join();
     threadB.join();
+
+    std::future<int> answer = std::async(backgroundWaitTask);
+    std::cout << "Do other stuff"  << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::cout << "Answer: " << answer.get() << std::endl;
+
+    X x;
+
+    auto futureA = std::async(&X::f, &x, "hello");
+    auto futureB = std::async(&X::g, &x, "hello");
+
+    Y y;
+
+    auto futureC = std::async(std::launch::async, Y(), 3.14);
+    auto futureD = std::async(std::launch::deferred, std::ref(y), 2.718);
+
+    futureC.wait();
+    futureD.wait();
+
+    std::vector<char> s = {'A', 'B', 'C', 'D', 'E'};
+
+    std::packaged_task<std::string(std::vector<char>*, int)> task(char2string);
+    std::future<std::string> futureE = task.get_future();
+    std::thread threadC(std::move(task), &s, 5);
+    std::string resultM = futureE.get();
+    std::cout << "char2string: " << resultM << std::endl;
+    threadC.join();
+
 }
