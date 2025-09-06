@@ -8,7 +8,6 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/wait.h>
-#include <errno.h>
 #include <pthread.h>
 
 #define PORT 54321
@@ -135,6 +134,7 @@ void *client() {
 
     write(client_fd, buf, strlen(buf));
     close(client_fd);
+    return NULL;
 }
 
 void conn() {

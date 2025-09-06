@@ -1,16 +1,16 @@
 #include <algorithm>
-#include <functional>
-#include <exception>
-#include <iostream>
 #include <climits>
+#include <exception>
+#include <functional>
+#include <iostream>
 #include <list>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <thread>
 #include <shared_mutex>
 #include <stack>
 #include <string>
+#include <thread>
 #include <vector>
 
 std::list<int> globalList;
@@ -41,15 +41,14 @@ typedef struct
 
 class DataWrapper
 {
-public:
-    template <typename F>
-    void process(F f)
+  public:
+    template <typename F> void process(F f)
     {
         std::lock_guard<std::mutex> guard(mutex_);
         f(data_);
     }
 
-private:
+  private:
     Data data_;
     std::mutex mutex_;
 };
@@ -77,17 +76,18 @@ struct EmptyStackException : std::exception
     }
 };
 
-template <typename T>
-class ThreadSafeStack
+template <typename T> class ThreadSafeStack
 {
-public:
-    ThreadSafeStack() {}
+  public:
+    ThreadSafeStack()
+    {
+    }
     ThreadSafeStack(const ThreadSafeStack &other)
     {
         std::lock_guard<std::mutex> guard(other.mutex_);
         stack_ = other.stack_;
     }
-    ThreadSafeStack& operator=(const ThreadSafeStack&) = delete;
+    ThreadSafeStack &operator=(const ThreadSafeStack &) = delete;
 
     void push(T val)
     {
@@ -107,7 +107,7 @@ public:
         return p;
     }
 
-    void pop(T& val)
+    void pop(T &val)
     {
         std::lock_guard<std::mutex> guard(mutex_);
         if (stack_.empty())
@@ -124,26 +124,28 @@ public:
         return stack_.empty();
     }
 
-private:
+  private:
     std::stack<T> stack_;
     mutable std::mutex mutex_;
 };
 
 class Account
 {
-public:
-    Account(int balance) : balance_(balance) {}
+  public:
+    Account(int balance) : balance_(balance)
+    {
+    }
 
     int balance_;
     std::mutex mutex_;
 
-    void print() 
+    void print()
     {
         std::cout << "Balance: " << balance_ << std::endl;
     }
 };
 
-void transferDeadLock(Account& a, Account& b, int amount)
+void transferDeadLock(Account &a, Account &b, int amount)
 {
     std::unique_lock<std::mutex> lockA(a.mutex_);
     std::unique_lock<std::mutex> lockB(b.mutex_);
@@ -151,7 +153,7 @@ void transferDeadLock(Account& a, Account& b, int amount)
     b.balance_ += amount;
 }
 
-void transferLock(Account& a, Account& b, int amount)
+void transferLock(Account &a, Account &b, int amount)
 {
     std::lock(a.mutex_, b.mutex_);
     std::unique_lock<std::mutex> lockA(a.mutex_, std::adopt_lock);
@@ -211,8 +213,10 @@ class HierarchicalMutex
         thisHierarchicalLevel_ = hierarchicalLevel_;
     }
 
-public:
-    explicit HierarchicalMutex(unsigned long level) : hierarchicalLevel_(level), previousHierarchicalLevel_(0) {}
+  public:
+    explicit HierarchicalMutex(unsigned long level) : hierarchicalLevel_(level), previousHierarchicalLevel_(0)
+    {
+    }
 
     void lock()
     {
@@ -230,7 +234,7 @@ public:
     bool tryLock()
     {
         checkForHierarchicalViolation();
-        if (!mutex_.try_lock()) 
+        if (!mutex_.try_lock())
         {
             return false;
         }
@@ -243,14 +247,14 @@ thread_local unsigned long HierarchicalMutex::thisHierarchicalLevel_(ULONG_MAX);
 
 class X
 {
-public:
+  public:
     X(int val) : val_(val) {};
 
-    friend void swap(X& lx, X& rx)
+    friend void swap(X &lx, X &rx)
     {
-        if (&lx == &rx) 
+        if (&lx == &rx)
         {
-            return ;
+            return;
         }
         std::unique_lock<std::mutex> lockA(lx.mutex_, std::defer_lock);
         std::unique_lock<std::mutex> lockB(rx.mutex_, std::defer_lock);
@@ -258,19 +262,19 @@ public:
         std::swap(lx.val_, rx.val_);
     }
 
-private:
+  private:
     int val_;
     std::mutex mutex_;
 };
 
 class Y
 {
-public:
+  public:
     Y(int val) : val_(val) {};
 
-    friend bool operator==(Y const& lhs, Y const& rhs)
+    friend bool operator==(Y const &lhs, Y const &rhs)
     {
-        if (&lhs == &rhs) 
+        if (&lhs == &rhs)
         {
             return true;
         }
@@ -278,44 +282,48 @@ public:
         int rval = rhs.Val();
         return lval == rval;
     }
-    
-private:
-    int Val() const 
+
+  private:
+    int Val() const
     {
-        std::lock_guard<std::mutex> guard(mutex_); 
-        return val_; 
+        std::lock_guard<std::mutex> guard(mutex_);
+        return val_;
     }
 
     int val_;
     mutable std::mutex mutex_;
 };
 
-class DNSEntry {};
+class DNSEntry
+{
+};
 
 class DNSCache
 {
     std::map<std::string, DNSEntry> entries_;
     mutable std::shared_mutex mutex_;
-public:
-    DNSEntry findEntry(std::string const& domain) const 
+
+  public:
+    DNSEntry findEntry(std::string const &domain) const
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         std::map<std::string, DNSEntry>::const_iterator const it = entries_.find(domain);
         return (it == entries_.end()) ? DNSEntry() : it->second;
     }
 
-    void updateOrAddEntry(std::string const& domain, DNSEntry const& entry)
+    void updateOrAddEntry(std::string const &domain, DNSEntry const &entry)
     {
         std::lock_guard<std::shared_mutex> guard(mutex_);
         entries_[domain] = entry;
     }
 };
 
-class Recursive 
+class Recursive
 {
     std::recursive_mutex mutex_;
     std::string data_;
-public:
+
+  public:
     void fA()
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -329,7 +337,6 @@ public:
         data_ = "FB";
         std::cout << "fB(), shared variable: " << data_ << '\n';
         fA();
-
     }
 };
 

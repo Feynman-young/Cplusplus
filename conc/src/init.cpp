@@ -10,15 +10,17 @@
 
 class Resource
 {
-public:
-    Resource(int a, const std::string& s) : a_(a), s_(s) {}
+  public:
+    Resource(int a, const std::string &s) : a_(a), s_(s)
+    {
+    }
 
     void print()
     {
         std::cout << a_ << " " << s_ << std::endl;
     }
 
-private:
+  private:
     int a_;
     std::string s_;
 };
@@ -54,7 +56,7 @@ void lazyResourceInitialization()
     globalResourcePtrB->print();
 }
 
-void doubleCheckLocking()   // Undefined Behaviour
+void doubleCheckLocking() // Undefined Behaviour
 {
     if (!globalResourcePtrC)
     {
@@ -78,7 +80,7 @@ void onceFlagResource()
     globalResourcePtrD->print();
 }
 
-void commonResourceFuncThreads() 
+void commonResourceFuncThreads()
 {
     std::vector<std::thread> threads;
 
@@ -90,7 +92,7 @@ void commonResourceFuncThreads()
     std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
 }
 
-void lazyResourceInitializationThreads() 
+void lazyResourceInitializationThreads()
 {
     std::vector<std::thread> threads;
 
@@ -102,7 +104,7 @@ void lazyResourceInitializationThreads()
     std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
 }
 
-void doubleCheckLockingThreads() 
+void doubleCheckLockingThreads()
 {
     std::vector<std::thread> threads;
 
@@ -128,7 +130,7 @@ void onceFlagResourceThreads()
 
 class Singleton
 {
-private:
+  private:
     static std::unique_ptr<Singleton> instance_;
     static std::once_flag onceFlag_;
 
@@ -136,15 +138,14 @@ private:
     {
         std::cout << "Singleton instance created." << std::endl;
     }
-public:
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
 
-    static Singleton* instance()
+  public:
+    Singleton(const Singleton &) = delete;
+    Singleton &operator=(const Singleton &) = delete;
+
+    static Singleton *instance()
     {
-        std::call_once(onceFlag_, []() {
-            instance_.reset(new Singleton);
-        });
+        std::call_once(onceFlag_, []() { instance_.reset(new Singleton); });
         return instance_.get();
     }
 

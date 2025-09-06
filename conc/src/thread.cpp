@@ -6,31 +6,39 @@
 #include <thread>
 #include <vector>
 
-void threadWorkA(std::string s) { std::cout << "String: " << s << std::endl; }
+void threadWorkA(std::string s)
+{
+    std::cout << "String: " << s << std::endl;
+}
 
 class BackgroundTaskA
 {
-public:
-    void operator()(std::string s) { std::cout << "String: " << s << std::endl; }
+  public:
+    void operator()(std::string s)
+    {
+        std::cout << "String: " << s << std::endl;
+    }
 };
 
 class BackgroundTaskB
 {
-public:
+  public:
     BackgroundTaskB(const std::string &s) : s_(s) {};
     void operator()()
     {
         std::cout << "String: " << s_ << std::endl;
     }
 
-private:
+  private:
     std::string s_;
 };
 
 class ThreadGuard
 {
-public:
-    explicit ThreadGuard(std::thread &thread) : thread_(thread) {}
+  public:
+    explicit ThreadGuard(std::thread &thread) : thread_(thread)
+    {
+    }
     ~ThreadGuard()
     {
         if (thread_.joinable())
@@ -42,7 +50,7 @@ public:
     ThreadGuard(std::thread const &) = delete;
     ThreadGuard &operator=(std::thread const &) = delete;
 
-private:
+  private:
     std::thread &thread_;
 };
 
@@ -61,14 +69,16 @@ void inc(int &a)
 
 class String
 {
-public:
-    String(const std::string &s) : s_(s) {}
+  public:
+    String(const std::string &s) : s_(s)
+    {
+    }
     void print()
     {
         std::cout << s_ << std::endl;
     }
 
-private:
+  private:
     std::string s_;
 };
 
@@ -81,7 +91,7 @@ class ScopedThread
 {
     std::thread thread_;
 
-public:
+  public:
     explicit ScopedThread(std::thread thread) : thread_(std::move(thread))
     {
         if (!thread_.joinable())
@@ -99,8 +109,7 @@ public:
     ScopedThread &operator=(ScopedThread const &) = delete;
 };
 
-template <typename Iterator, typename T>
-struct AccumulateBlock
+template <typename Iterator, typename T> struct AccumulateBlock
 {
     void operator()(Iterator first, Iterator last, T &result)
     {
@@ -108,8 +117,7 @@ struct AccumulateBlock
     }
 };
 
-template <typename Iterator, typename T>
-T parallelAccumulate(Iterator first, Iterator last, T init)
+template <typename Iterator, typename T> T parallelAccumulate(Iterator first, Iterator last, T init)
 {
     unsigned long const length = std::distance(first, last);
     if (length == 0)
@@ -147,10 +155,7 @@ int main()
 
     threads.push_back(std::thread(threadWorkA, "Function"));
     threads.push_back(std::thread(BackgroundTaskA(), "Class Operator"));
-    threads.push_back(std::thread(
-        [](std::string s)
-        { std::cout << "String: " << s << std::endl; },
-        "Lambda"));
+    threads.push_back(std::thread([](std::string s) { std::cout << "String: " << s << std::endl; }, "Lambda"));
 
     std::for_each(threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
 

@@ -1,11 +1,13 @@
 #ifndef TYPENAME_HPP
 #define TYPENAME_HPP
 
-template <class T>
-std::string
-type_name() {
+#include <string>
+#include <typeinfo>
+
+template <class T> std::string type_name()
+{
     typedef typename std::remove_reference<T>::type TR;
-    std::string r = typeid(TR).name(); 
+    std::string r = typeid(TR).name();
     if (std::is_const<TR>::value)
         r += " const";
     if (std::is_volatile<TR>::value)
@@ -17,4 +19,4 @@ type_name() {
     return r;
 }
 
-#endif 
+#endif

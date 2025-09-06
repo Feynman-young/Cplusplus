@@ -18,17 +18,21 @@ std::mutex globalMutexB;
 
 class Data
 {
-public:
-    Data() : s_(" ") {}
+  public:
+    Data() : s_(" ")
+    {
+    }
 
-    Data(const std::string &s) : s_(s) {}
+    Data(const std::string &s) : s_(s)
+    {
+    }
 
     void print()
     {
         std::cout << s_ << std::endl;
     }
 
-private:
+  private:
     std::string s_;
 };
 
@@ -71,7 +75,7 @@ void popFromQueue()
     for (int i = 0; i < 10; ++i)
     {
         std::unique_lock<std::mutex> lock(globalMutexB);
-        globalCondition.wait(lock, [] () { return !globalDataQueue.empty(); });
+        globalCondition.wait(lock, []() { return !globalDataQueue.empty(); });
         Data data = globalDataQueue.front();
         globalDataQueue.pop();
         lock.unlock();
@@ -79,13 +83,14 @@ void popFromQueue()
     }
 }
 
-template<typename T>
-class ThreadSafeQueue
+template <typename T> class ThreadSafeQueue
 {
-public:
-    ThreadSafeQueue() {}
+  public:
+    ThreadSafeQueue()
+    {
+    }
 
-    ThreadSafeQueue(ThreadSafeQueue const& other)
+    ThreadSafeQueue(ThreadSafeQueue const &other)
     {
         std::lock_guard<std::mutex> guard(other.mutex_);
         queue_ = other.queue_;
@@ -98,7 +103,7 @@ public:
         condition_.notify_one();
     }
 
-    void waitPop(T& value)
+    void waitPop(T &value)
     {
         std::unique_ptr<std::mutex> lock(mutex_);
         condition_.wait(lock, [this]() { return !queue_.empty(); });
@@ -115,7 +120,7 @@ public:
         return p;
     }
 
-    bool tryPop(T& value)
+    bool tryPop(T &value)
     {
         std::lock_guard<std::mutex> guard(mutex_);
         if (queue_.empty())
@@ -145,7 +150,7 @@ public:
         return queue_.empty();
     }
 
-private:
+  private:
     std::condition_variable condition_;
     mutable std::mutex mutex_;
     std::queue<T> queue_;
@@ -178,7 +183,7 @@ struct Y
     }
 };
 
-std::string char2string(std::vector<char>* vec, int size)
+std::string char2string(std::vector<char> *vec, int size)
 {
     if (vec == nullptr || size <= 0)
     {
@@ -202,7 +207,7 @@ int main()
     threadB.join();
 
     std::future<int> answer = std::async(backgroundWaitTask);
-    std::cout << "Do other stuff"  << std::endl;
+    std::cout << "Do other stuff" << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     std::cout << "Answer: " << answer.get() << std::endl;
 
@@ -221,11 +226,10 @@ int main()
 
     std::vector<char> s = {'A', 'B', 'C', 'D', 'E'};
 
-    std::packaged_task<std::string(std::vector<char>*, int)> task(char2string);
+    std::packaged_task<std::string(std::vector<char> *, int)> task(char2string);
     std::future<std::string> futureE = task.get_future();
     std::thread threadC(std::move(task), &s, 5);
     std::string resultM = futureE.get();
     std::cout << "char2string: " << resultM << std::endl;
     threadC.join();
-
 }

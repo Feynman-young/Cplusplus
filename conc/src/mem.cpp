@@ -2,13 +2,12 @@
 #include <iostream>
 #include <stdexcept>
 
-template<typename T, std::size_t N>
-class MemoryListPool
+template <typename T, std::size_t N> class MemoryListPool
 {
-public:
+  public:
     MemoryListPool()
     {
-        pool_ = (MemNode *) std::malloc(N * sizeof(MemNode));
+        pool_ = (MemNode *)std::malloc(N * sizeof(MemNode));
 
         free_ = pool_;
 
@@ -25,63 +24,69 @@ public:
         std::free(pool_);
     }
 
-    T* alloc()
+    T *alloc()
     {
         if (free_ == nullptr)
         {
             throw std::logic_error("Memory pool exhausted!");
         }
 
-        T* ret = (T *) free_;
+        T *ret = (T *)free_;
         free_ = free_->next_;
 
         return ret;
     }
 
-    void deAlloc(T* ptr)
+    void deAlloc(T *ptr)
     {
         if (ptr == nullptr)
         {
-            return ;
+            return;
         }
 
         ptr->~T();
 
-        MemNode* node = (MemNode *) ptr;
+        MemNode *node = (MemNode *)ptr;
 
         node->next_ = free_;
         free_ = node;
     }
 
-private:
-    union MemNode
-    {
-        MemNode* next_;
+  private:
+    union MemNode {
+        MemNode *next_;
         char data_[sizeof(T)];
     };
 
-    MemNode* free_;
-    MemNode* pool_;
+    MemNode *free_;
+    MemNode *pool_;
 };
 
-enum { ALIGN_ = 8 };
-enum { MAX_BYTES_ = 128 };
-enum { N_FREE_LIST_ = 16 };
-
-template<bool threads, int inst>
-class DefaultAllocTemplate
+enum
 {
-    union Obj
-    {
-        Obj* freeListLink_;
+    ALIGN_ = 8
+};
+enum
+{
+    MAX_BYTES_ = 128
+};
+enum
+{
+    N_FREE_LIST_ = 16
+};
+
+template <bool threads, int inst> class DefaultAllocTemplate
+{
+    union Obj {
+        Obj *freeListLink_;
         char clientData_[1];
     };
 
-private:
-    static char* startFree_;
-    static char* endFree_;
+  private:
+    static char *startFree_;
+    static char *endFree_;
     static size_t heapSize_;
-    static Obj* volatile freeList_[N_FREE_LIST_];
+    static Obj *volatile freeList_[N_FREE_LIST_];
 
     static size_t getFreeListIndex(size_t bytes)
     {
@@ -90,36 +95,32 @@ private:
 
     static size_t getRoundUp(size_t bytes)
     {
-        return (bytes + (size_t) ALIGN_ - 1) & (~((size_t) ALIGN_ - 1));
+        return (bytes + (size_t)ALIGN_ - 1) & (~((size_t)ALIGN_ - 1));
     }
 
-    static void* refill(size_t n);
+    static void *refill(size_t n);
 
-    static char* chunkAlloc(size_t size, int& nObjs);
+    static char *chunkAlloc(size_t size, int &nObjs);
 
-public:
-    static void* alloc(size_t n);
+  public:
+    static void *alloc(size_t n);
 
-    static void deAlloc(void* ptr, size_t n);
+    static void deAlloc(void *ptr, size_t n);
 };
 
-template<bool threads, int inst>
-char* DefaultAllocTemplate<threads, inst>::startFree_ = 0;
+template <bool threads, int inst> char *DefaultAllocTemplate<threads, inst>::startFree_ = 0;
 
-template<bool threads, int inst>
-char* DefaultAllocTemplate<threads, inst>::endFree_ = 0;
+template <bool threads, int inst> char *DefaultAllocTemplate<threads, inst>::endFree_ = 0;
 
-template<bool threads, int inst>
-size_t DefaultAllocTemplate<threads, inst>::heapSize_ = 0;
+template <bool threads, int inst> size_t DefaultAllocTemplate<threads, inst>::heapSize_ = 0;
 
-template<bool threads, int inst>
-typename DefaultAllocTemplate<threads, inst>::Obj* volatile
-DefaultAllocTemplate<threads, inst>::freeList_[N_FREE_LIST_] = { 0 };
+template <bool threads, int inst>
+typename DefaultAllocTemplate<threads, inst>::Obj
+    *volatile DefaultAllocTemplate<threads, inst>::freeList_[N_FREE_LIST_] = {0};
 
-template<bool threads, int inst>
-void* DefaultAllocTemplate<threads, inst>::alloc(size_t n)
+template <bool threads, int inst> void *DefaultAllocTemplate<threads, inst>::alloc(size_t n)
 {
-    void* ret;
+    void *ret;
 
     if (n > MAX_BYTES_)
     {
@@ -127,8 +128,8 @@ void* DefaultAllocTemplate<threads, inst>::alloc(size_t n)
     }
     else
     {
-        Obj* volatile* pObjPtr = freeList_ + getFreeListIndex(n);
-        Obj* ptr = *pObjPtr;
+        Obj *volatile *pObjPtr = freeList_ + getFreeListIndex(n);
+        Obj *ptr = *pObjPtr;
 
         if (ptr == nullptr)
         {
@@ -144,8 +145,7 @@ void* DefaultAllocTemplate<threads, inst>::alloc(size_t n)
     return ret;
 }
 
-template<bool threads, int inst>
-void DefaultAllocTemplate<threads, inst>::deAlloc(void* ptr, size_t n)
+template <bool threads, int inst> void DefaultAllocTemplate<threads, inst>::deAlloc(void *ptr, size_t n)
 {
     if (n > MAX_BYTES_)
     {
@@ -153,8 +153,8 @@ void DefaultAllocTemplate<threads, inst>::deAlloc(void* ptr, size_t n)
     }
     else
     {
-        Obj* q = (Obj *) ptr;
-        Obj* volatile* pObjPtr = freeList_ + getFreeListIndex(n);
+        Obj *q = (Obj *)ptr;
+        Obj *volatile *pObjPtr = freeList_ + getFreeListIndex(n);
         q->freeListLink_ = *pObjPtr;
         *pObjPtr = q;
     }
@@ -164,26 +164,25 @@ void DefaultAllocTemplate<threads, inst>::deAlloc(void* ptr, size_t n)
 Refill the free list with new blocks of memory. Allocate 20 objects at once,
 return the header and put the remaining objects to the free list.
 */
-template<bool threads, int inst>
-void* DefaultAllocTemplate<threads, inst>::refill(size_t n)
+template <bool threads, int inst> void *DefaultAllocTemplate<threads, inst>::refill(size_t n)
 {
     int nObjs = 20;
-    char* chunk = chunkAlloc(n, nObjs);
+    char *chunk = chunkAlloc(n, nObjs);
 
     if (nObjs == 1)
     {
         return chunk;
     }
 
-    Obj* ret = (Obj *) chunk;
-    Obj* volatile* pObjPtr = freeList_ + getFreeListIndex(n);
-    *pObjPtr = (Obj *) (chunk + n);
-    Obj* curr = *pObjPtr;
-    Obj* next = nullptr;
+    Obj *ret = (Obj *)chunk;
+    Obj *volatile *pObjPtr = freeList_ + getFreeListIndex(n);
+    *pObjPtr = (Obj *)(chunk + n);
+    Obj *curr = *pObjPtr;
+    Obj *next = nullptr;
 
     for (int i = 2; i < nObjs; ++i)
     {
-        next = (Obj *) (chunk + n * i);
+        next = (Obj *)(chunk + n * i);
         curr->freeListLink_ = next;
         curr = next;
     }
@@ -199,10 +198,9 @@ one object size, use the current start, move the start pointer forward and
 return allocated memory. Otherwise, move the left memory to the free list and
 request new memory from the system.
 */
-template<bool threads, int inst>
-char* DefaultAllocTemplate<threads, inst>::chunkAlloc(size_t size, int& nObjs)
+template <bool threads, int inst> char *DefaultAllocTemplate<threads, inst>::chunkAlloc(size_t size, int &nObjs)
 {
-    char* result = nullptr;
+    char *result = nullptr;
 
     size_t totalBytes = size * nObjs;
     size_t leftBytes = endFree_ - startFree_;
@@ -215,7 +213,7 @@ char* DefaultAllocTemplate<threads, inst>::chunkAlloc(size_t size, int& nObjs)
     }
     else if (leftBytes > size)
     {
-        nObjs = (int) (leftBytes / size);
+        nObjs = (int)(leftBytes / size);
         result = startFree_;
         startFree_ += size * nObjs;
         return result;
@@ -227,30 +225,30 @@ char* DefaultAllocTemplate<threads, inst>::chunkAlloc(size_t size, int& nObjs)
         if (leftBytes > 0)
         {
             // Put the start memory to the free list.
-            Obj* volatile *pObjPtr = freeList_ + getFreeListIndex(leftBytes);
+            Obj *volatile *pObjPtr = freeList_ + getFreeListIndex(leftBytes);
             ((Obj *)startFree_)->freeListLink_ = *pObjPtr;
-            *pObjPtr = (Obj *) startFree_;
+            *pObjPtr = (Obj *)startFree_;
         }
 
-        startFree_ = (char *) std::malloc(newBytes);
+        startFree_ = (char *)std::malloc(newBytes);
         if (startFree_ == 0)
         {
             // If allocation is fail, try from the free list.
-            for (size_t i = size; i < (size_t) MAX_BYTES_; i += (size_t) ALIGN_)
+            for (size_t i = size; i < (size_t)MAX_BYTES_; i += (size_t)ALIGN_)
             {
-                 Obj* volatile *pObjPtr = freeList_ + getFreeListIndex(i);
-                 Obj* ptr = *pObjPtr;
-                 if (ptr != NULL)
-                 {
+                Obj *volatile *pObjPtr = freeList_ + getFreeListIndex(i);
+                Obj *ptr = *pObjPtr;
+                if (ptr != NULL)
+                {
                     // Push the start memory from the free list.
                     startFree_ = (char *)ptr;
                     *pObjPtr = ptr->freeListLink_;
                     endFree_ = startFree_ + i;
                     return chunkAlloc(size, nObjs);
-                 }
+                }
             }
             endFree_ = nullptr;
-            startFree_ = (char *) std::malloc(newBytes);
+            startFree_ = (char *)std::malloc(newBytes);
         }
         heapSize_ += newBytes;
         endFree_ = startFree_ + newBytes;
@@ -264,12 +262,12 @@ int main()
 {
     MemoryListPool<int, 10> memoryListPool;
 
-    int* ptrA = memoryListPool.alloc();
-    int* ptrB = memoryListPool.alloc();
+    int *ptrA = memoryListPool.alloc();
+    int *ptrB = memoryListPool.alloc();
 
     memoryListPool.deAlloc(ptrA);
     memoryListPool.deAlloc(ptrB);
 
-    int* ptrC = (int *) DefaultAlloc::alloc(sizeof(int));
+    int *ptrC = (int *)DefaultAlloc::alloc(sizeof(int));
     DefaultAlloc::deAlloc(ptrC, sizeof(int));
 }

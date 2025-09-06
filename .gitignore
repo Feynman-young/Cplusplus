@@ -1,4 +1,5 @@
 .vscode/
 conc/build/
 cpp/build/
+cpp/.cache/
 net/build/

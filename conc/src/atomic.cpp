@@ -21,7 +21,8 @@ void writeXAndY()
 
 void readYThenX()
 {
-    while (!y.load(std::memory_order_relaxed));
+    while (!y.load(std::memory_order_relaxed))
+        ;
     if (x.load(std::memory_order_relaxed))
     {
         ++z;
@@ -30,10 +31,10 @@ void readYThenX()
 
 void atomicMemoryOrderRelax()
 {
-/*
-** Operations on atomic types performed with relaxed ordering don't participate
-** in sychronizes-with relationships;
-**/
+    /*
+    ** Operations on atomic types performed with relaxed ordering don't participate
+    ** in sychronizes-with relationships;
+    **/
     x = false;
     y = false;
     z = 0;
@@ -46,7 +47,8 @@ void atomicMemoryOrderRelax()
 
 int main()
 {
-    while (true) {
+    while (true)
+    {
         atomicMemoryOrderRelax();
     }
 }
