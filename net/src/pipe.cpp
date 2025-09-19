@@ -64,7 +64,7 @@ void socketpair_example() {
                 break;
             }
             printf("c => : %s\n", buffer);
-            char* respone = "ack";
+            char respone[] = "ack";
             send(pipe_fd[1], respone, strlen(respone), 0);
         }
         close(pipe_fd[1]);
