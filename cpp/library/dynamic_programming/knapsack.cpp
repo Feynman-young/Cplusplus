@@ -64,7 +64,8 @@ int dynamicProgramming01Knapsack(int n, int W, std::vector<int> &w, std::vector<
 }
 
 /* Unbounded Knapsack problem
- * Each item can be included an unlimited number of times.
+ * The difference is each item can be included an unlimited number of times.
+ * Iterate k from left to right.
  */
 int dynamicProgrammingUnboundedKnapsack(int n, int W, std::vector<int> &w, std::vector<int> &v)
 {
@@ -88,6 +89,7 @@ int main()
     int W = 15;
     std::vector<int> w = {2, 2, 6, 5, 4, 3};
     std::vector<int> v = {6, 3, 5, 4, 6, 6};
+    std::vector<int> c = {2, 2, 1, 1, 2, 2};
     std::cout << "0-1 Knapsack DFS: " << depthFirstSearch(0, W, n, w, v) << "\n";
     std::cout << "0-1 Knapsack DFS With Memory: " << depthFirstSearchWithMemory(n, W, w, v) << "\n";
     std::cout << "0-1 Knapsack DP: " << dynamicProgramming01Knapsack(n, W, w, v) << "\n";
